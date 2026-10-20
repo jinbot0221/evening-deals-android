@@ -1,0 +1,17 @@
+test_cancel_cutoff_stock_and_no_show (test_server.ContractTest.test_cancel_cutoff_stock_and_no_show) ... ok
+test_confirmation_replay_and_body_mismatch (test_server.ContractTest.test_confirmation_replay_and_body_mismatch) ... ok
+test_expired_hold_and_payment_failure_release (test_server.ContractTest.test_expired_hold_and_payment_failure_release) ... ok
+test_favorite_store_survives_ended_catalog (test_server.ContractTest.test_favorite_store_survives_ended_catalog) ... ok
+test_http_reservation_contract (test_server.ContractTest.test_http_reservation_contract) ... ok
+test_last_stock_concurrency (test_server.ContractTest.test_last_stock_concurrency) ... ok
+test_new_demo_day_preserves_old_orders (test_server.ContractTest.test_new_demo_day_preserves_old_orders) ... ok
+test_ownership_guest_and_merchant (test_server.ContractTest.test_ownership_guest_and_merchant) ... ok
+test_persistence_and_edit_constraints (test_server.ContractTest.test_persistence_and_edit_constraints) ... ok
+test_signup_never_grants_merchant (test_server.ContractTest.test_signup_never_grants_merchant) ... ok
+test_verify_readonly_complete_once_and_review (test_server.ContractTest.test_verify_readonly_complete_once_and_review) ... ok
+test_window_boundaries_and_rate_limit (test_server.ContractTest.test_window_boundaries_and_rate_limit) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 5.188s
+
+OK

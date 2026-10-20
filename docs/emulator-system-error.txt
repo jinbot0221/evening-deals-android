@@ -1,0 +1,28 @@
+--------- beginning of crash
+10-20 22:01:33.848   526   526 E AndroidRuntime: *** FATAL EXCEPTION IN SYSTEM PROCESS: main
+10-20 22:01:33.848   526   526 E AndroidRuntime: java.lang.IllegalStateException: Lost network stack
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.net.ConnectivityModuleConnector.maybeCrashWithTerribleFailure(ConnectivityModuleConnector.java:335)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.net.ConnectivityModuleConnector.access$400(ConnectivityModuleConnector.java:51)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.net.ConnectivityModuleConnector$ModuleServiceConnection.onServiceDisconnected(ConnectivityModuleConnector.java:281)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.app.LoadedApk$ServiceDispatcher.doDeath(LoadedApk.java:1973)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.app.LoadedApk$ServiceDispatcher$RunConnection.run(LoadedApk.java:1988)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:938)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:223)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at com.android.server.SystemServer.run(SystemServer.java:622)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at com.android.server.SystemServer.main(SystemServer.java:408)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:592)
+10-20 22:01:33.848   526   526 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:925)
+10-20 22:01:40.579  1303  1303 E AndroidRuntime: FATAL EXCEPTION: main
+10-20 22:01:40.579  1303  1303 E AndroidRuntime: Process: com.android.networkstack.process, PID: 1303
+10-20 22:01:40.579  1303  1303 E AndroidRuntime: DeadSystemException: The system died; earlier logs will point to the root cause
+10-20 22:01:40.890   967   967 E AndroidRuntime: FATAL EXCEPTION: main
+10-20 22:01:40.890   967   967 E AndroidRuntime: Process: com.android.phone, PID: 967
+10-20 22:01:40.890   967   967 E AndroidRuntime: DeadSystemException: The system died; earlier logs will point to the root cause
+10-20 22:01:40.942   704   704 E AndroidRuntime: FATAL EXCEPTION: main
+10-20 22:01:40.942   704   704 E AndroidRuntime: Process: com.android.systemui, PID: 704
+10-20 22:01:40.942   704   704 E AndroidRuntime: DeadSystemException: The system died; earlier logs will point to the root cause
+10-20 22:01:41.016   704   840 E AndroidRuntime: FATAL EXCEPTION: SysUiBg
+10-20 22:01:41.016   704   840 E AndroidRuntime: Process: com.android.systemui, PID: 704
+10-20 22:01:41.016   704   840 E AndroidRuntime: DeadSystemException: The system died; earlier logs will point to the root cause
