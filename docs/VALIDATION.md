@@ -36,10 +36,17 @@
 실결제는 없습니다. OAuth 공급자 로그인·메일 발송·FCM·카메라 스캔은 미구현/미설정이며 검증 통과로 계산하지 않습니다. 설정이 필요한 기능을 누르면 안내를 표시합니다. 앱의 샘플 음식 사진은 APK에 포함됩니다.
 
 
-### 에뮬레이터 실행: 미완료 (환경 오류)
+### 에뮬레이터 실행: Android 9에서 기본 화면 확인
 
-APK 전송 후 Android 30 에뮬레이터의 시스템 프로세스가 `java.lang.IllegalStateException: Lost network stack`으로 종료됐습니다. 설치 요청은 `Failure calling service package: Broken pipe (32)`로 실패했고 activity 서비스도 사라졌습니다. 앱 프로세스의 동작은 검증하지 못했습니다. 동일 인스턴스의 반복 실행은 중단했습니다.
+Android 9(API 28) x86 에뮬레이터에 동일한 APK를 설치해 성공 응답을 확인했습니다. 실제 서버 상품 조회와 발견 → 상품 상세 → 수량 선택 화면 이동을 확인하고 720 × 1520px 원본 스크린샷 4장을 저장했습니다.
 
-실기기 또는 하드웨어 가속 가능한 Android Studio 에뮬레이터에서 설치·화면 이동·접근성·예약 흐름을 추가 검증해야 합니다. 이 기록은 빌드 성공을 앱 실행 성공으로 취급하지 않습니다.
+- [비회원 홈](screenshots/home.png)
+- [상품 목록: 발견 탭 스크롤 상태](screenshots/discover.png)
+- [상품 상세](screenshots/detail.png)
+- [로그인 전 수량 선택·합계 미리보기](screenshots/quantity.png)
+
+앱 코드 변경 없이 기존 APK를 사용했습니다. 로그인·예약 확정·매장 수령 전체 UI 흐름과 접근성 검수는 추가로 필요합니다.
+
+앞서 사용했던 Android 30 에뮬레이터는 시스템 프로세스의 `Lost network stack` 오류로 설치가 실패했습니다. 해당 환경 오류 기록은 `emulator-system-error.txt`에 보존했으며, 이후 Android 9 에뮬레이터로 전환해 위 범위를 확인했습니다.
 
 환경 설정 초안에는 전체 `install_script`와 `start_skill`, `images.unsplash.com` 허용 항목을 저장했습니다. 현재 인스턴스에서 설치/시작 스크립트를 확인했으며, 환경 게시 및 새 작업 복원은 실행하지 않았습니다.

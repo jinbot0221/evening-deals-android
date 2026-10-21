@@ -2,6 +2,20 @@
 
 주변 매장의 마감 음식을 예약하고 직접 수령하는 **Android 네이티브 포트폴리오 MVP**입니다. 첨부 기획서·화면정의서의 고객/매장 흐름을 Kotlin + Jetpack Compose와 Python/SQLite API로 구현했습니다. 모든 매장과 상품은 가상이며, 결제는 테스트 시뮬레이션입니다.
 
+## 실제 실행 화면
+
+Android 9(API 28) 에뮬레이터에서 기존 APK를 실행해 캡처한 화면입니다. 해상도는 720 × 1520px이며, 가상 매장과 샘플 상품을 표시합니다.
+
+| 홈 | 상품 목록 |
+|---|---|
+| ![비회원 홈](docs/screenshots/home.png) | ![발견 탭 상품 목록](docs/screenshots/discover.png) |
+
+| 상품 상세 | 수량 선택 |
+|---|---|
+| ![오늘의 빵 세트 상세](docs/screenshots/detail.png) | ![예약 수량과 합계 미리보기](docs/screenshots/quantity.png) |
+
+상품 목록은 발견 탭을 스크롤한 상태입니다. 앱 설치·실행, 서버 상품 조회, 발견 → 상세 → 수량 선택 이동을 확인했습니다. 로그인·예약 확정·매장 수령 전체 UI 흐름은 이번 캡처에서 검증하지 않았습니다.
+
 ## 실행
 
 Android Studio에서 이 폴더를 열고 Gradle Sync 후 `app`을 실행하세요. JDK 17 이상, Android SDK 35가 필요하며 Android 8.0(API 26) 이상을 지원합니다.
