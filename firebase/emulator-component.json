@@ -1,0 +1,6 @@
+{
+  "version": "1.22.0",
+  "source": "https://dl.google.com/dl/cloudsdk/channels/rapid/components/google-cloud-sdk-cloud-firestore-emulator-20260717053915.tar.gz",
+  "sha256": "e962450b637827664094959571fd92c3680de863936bd481bd0a050f76ca91ba",
+  "provenance": "Google Cloud SDK components-2.json, cloud-firestore-emulator component"
+}

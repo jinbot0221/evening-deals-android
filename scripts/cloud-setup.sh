@@ -65,5 +65,25 @@ sdk_status=${PIPESTATUS[1]}
 set -o pipefail
 [[ "$sdk_status" == 0 ]]
 "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
-./gradlew --no-daemon assembleDebug lintDebug
+bash firebase/setup-node.sh
+source scripts/env.sh
+source firebase/dev-env.sh
+npm ci --no-audit --no-fund
+if [[ ! -f /workspace/tools/firestore-launcher.jar ]]; then
+ bash firebase/setup-cloud-emulator.sh
+ source firebase/dev-env.sh
+fi
+./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug
+if python3 - <<'PYCODE'
+import urllib.request,json
+try:
+ with urllib.request.urlopen('http://127.0.0.1:4400/emulators',timeout=2) as r:hub=json.load(r)
+ assert hub.get('firestore',{}).get('port')==8085
+except Exception:raise SystemExit(1)
+PYCODE
+then
+ node --test --test-concurrency=1 tests/firebase/rules.test.mjs
+else
+ npm run test:firebase
+fi
 (cd server && python3 -m unittest -v)

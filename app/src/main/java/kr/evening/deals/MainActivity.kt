@@ -205,12 +205,13 @@ fun Check(label: String, checked: Boolean, change: (Boolean) -> Unit) {
 @Composable
 fun FoodImage(d: JSONObject, modifier: Modifier = Modifier) {
     SubcomposeAsyncImage(
-        model = when (d.optString("category")) {
-            "베이커리" -> R.drawable.bread
-            "도시락" -> R.drawable.rice
-            "샐러드" -> R.drawable.salad
-            else -> d.optString("image")
-        },
+        model =
+            when (d.optString("category")) {
+                "베이커리" -> R.drawable.bread
+                "도시락" -> R.drawable.rice
+                "샐러드" -> R.drawable.salad
+                else -> d.optString("image")
+            },
         contentDescription = d.optString("title"),
         contentScale = ContentScale.Crop,
         modifier = modifier.fillMaxWidth(),
@@ -631,8 +632,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                                             { loginSheet = true },
                                         )
                                     else {
-                                        val stores =
-                                            vm.favoriteStores
+                                        val stores = vm.favoriteStores
                                         if (stores.isEmpty())
                                             Empty(
                                                 "아직 찜한 매장이 없어요",
@@ -804,7 +804,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                                             Text("로그아웃")
                                         }
                                     Text(
-                                        "저녁득템 0.1.0\n포트폴리오 데모 · 실제 과금 없음",
+                                        "저녁득템 ${BuildConfig.VERSION_NAME}\n포트폴리오 데모 · 실제 과금 없음",
                                         color = Muted,
                                         fontSize = 12.sp,
                                     )
@@ -1446,7 +1446,9 @@ fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done
             if (signup) "반가워요, 득템러!" else if (reset) "비밀번호를 잊으셨나요?" else "오늘의 득템을 시작해요",
             if (reset) "가입 이메일을 입력해 주세요." else "좋은 음식을 더 기분 좋은 가격으로.",
         )
-        if (!signup && !reset) {
+        if (
+            !signup && !reset && (BuildConfig.BACKEND == "legacy" || BuildConfig.FIREBASE_EMULATORS)
+        ) {
             Panel {
                 Text("시연용 계정", fontWeight = FontWeight.Bold)
                 Text(
@@ -1579,7 +1581,7 @@ fun EditDeal(d: JSONObject?, vm: DealsViewModel, done: () -> Unit) {
         Field(title, "상품명", { title = it.take(50) })
         Field(original, "원가 (원)", { original = it }, numeric = true)
         Field(price, "할인가 (원)", { price = it }, numeric = true)
-        Field(stock, "총수량 (1~999)", { stock = it }, numeric = true)
+        Field(stock, "총수량 (1~99, 등록 후 고정)", { stock = it }, numeric = true)
         Field(day, "픽업 날짜 (yyyy-MM-dd)", { day = it })
         Field(start, "시작 (HH:mm)", { start = it })
         Field(end, "종료 (HH:mm)", { end = it })

@@ -1,0 +1,8 @@
+# Copy to firebase.local.properties (ignored). Values are Firebase Android app identifiers, not Admin keys.
+backend=firebase
+firebaseProjectId=YOUR_PROJECT_ID
+firebaseAppId=YOUR_MOBILESDK_APP_ID
+firebaseApiKey=YOUR_ANDROID_API_KEY
+# false for your real Spark project; true only for local emulators.
+firebaseEmulators=false
+firebaseEmulatorHost=10.0.2.2

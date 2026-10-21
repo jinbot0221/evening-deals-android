@@ -1,8 +1,23 @@
 # 검증 기록
 
-2026-10-21 한국 시각 기준 작업 기록입니다.
+기존 데모는 2026-10-21, Firebase Spark 전환은 2026-10-22 한국 시각 기준 작업 기록입니다.
 
-## 서버
+## Firebase Spark 전환 검증 (2026-10-22)
+
+현재 기본 백엔드는 Firebase Auth + Firestore입니다. 아래 기존 Python 검증 기록과 구분합니다.
+
+- Firestore 보안 규칙: **14개 통과, 실패/건너뜀 0개**. 실제 Firestore 에뮬레이터에서 검증했으며 권한 거절을 기대하는 공격 요청도 포함합니다.
+- Android SDK 연동: **1개 시나리오 통과, 실패/건너뜀 0개**, Android 9(API 28). 로그인 → 찜 저장/삭제 → 수량 선점 → 확정 및 동일 키 재요청 → 취소·재고 반환 → 테스트 결제 실패·선점 해제 → 매장 계정 상품 등록 → 고객 예약 → 매장 코드 조회·수령 확정/재시도 → 고객 후기·알림 설정 저장 → 로그아웃을 실행했습니다.
+- `assembleDebug assembleDebugAndroidTest lintDebug`: 성공, Lint 오류 0개. 권장 사항 경고는 유지했습니다.
+- 로컬용 APK 메타데이터: [firebase-build-result.json](firebase-build-result.json). 실제 프로젝트 설정 파일은 포함하지 않았습니다.
+- 실제 Android 결과 요약: [firebase-android-test-result.json](firebase-android-test-result.json).
+- 전체 설치 스크립트 재실행 성공: Node 22·SDK 준비, APK/Lint, 보안 규칙 14개, 기존 Python 회귀 테스트 12개를 확인했습니다.
+- Auth 9099·Firestore 8085 시작, seed 재실행 보존, 규칙 보호된 비회원 상품 조회 및 이메일 로그인 smoke 검증을 확인했습니다.
+- Firestore 에뮬레이터 원본 호스트 다운로드가 차단되어 Google Cloud SDK 공식 1.22.0 컴포넌트를 공식 SHA-256으로 검증해 사용했습니다. 원본 JAR/예상 체크섬을 수정하거나 TLS 검증을 끄지 않았습니다.
+
+**실제 Spark 프로젝트에는 아직 연결·배포하지 않았습니다.** 프로젝트 설정 파일, 이메일 로그인 활성화, Firestore 규칙/인덱스 배포, 운영자 권한 지정이 필요합니다. 에뮬레이터는 프로덕션의 과금·할당량·인덱스 생성 상태를 검증하지 않습니다. 설정과 Spark에서 달라진 범위는 [FIREBASE_SPARK.md](FIREBASE_SPARK.md)를 참고하세요.
+
+## 기존 Python 데모 서버
 
 `cd server && python3 -m unittest -v` : **12개 통과**.
 
@@ -26,7 +41,7 @@
 - Lint: **오류 0, 경고 9**. 사진 리소스 폴더 관련 권장 사항 3개와 KTX 문법 권장 사항 6개입니다. 검사·assertion을 비활성화하지 않았습니다.
 - `bash scripts/cloud-setup.sh`: 재실행 성공. SDK 확인 → APK/Lint → 서버 테스트 12개까지 완료했습니다.
 - `apksigner verify --verbose`: APK Signature Scheme v2 검증 성공, 서명자 1명.
-- 산출물: `/workspace/artifacts/evening-deals-debug.apk` (18,811,781 bytes).
+- 산출물: `/workspace/artifacts/evening-deals-legacy-debug.apk` (18,811,781 bytes).
 - SHA-256: `5342629192126dca5b398c1ac205f29e1cde73059194b0c2ebb5bcffd804f926`.
 
 클라우드에 KVM이 없어 Android 30 x86_64 에뮬레이터를 소프트웨어 모드로 실행했습니다. 첫 부팅 및 설치가 느리므로 실행 검증은 빌드 검증과 별도로 기록합니다.

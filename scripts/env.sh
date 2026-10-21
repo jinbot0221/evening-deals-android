@@ -11,3 +11,7 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
   done
 fi
 export PATH="${JAVA_HOME:+$JAVA_HOME/bin:}$ANDROID_HOME/platform-tools:$PATH"
+
+if [[ -x /workspace/tools/node-v22.23.4-linux-x64/bin/node ]]; then
+  export PATH="/workspace/tools/node-v22.23.4-linux-x64/bin:$PATH"
+fi

@@ -6,3 +6,12 @@ local.properties
 server/*.db*
 __pycache__/
 .env
+node_modules/
+.firebase/
+*-debug.log
+firebase-debug.log*
+firestore-debug.log*
+firebase.local.properties
+app/google-services.json
+.firebase-cache/
+*.service-account.json

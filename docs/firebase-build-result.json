@@ -1,0 +1,10 @@
+{
+  "version": "0.2.0",
+  "backend": "Firebase Auth + Firestore",
+  "target": "local demo-evening-deals emulators; real project not configured",
+  "sha256": "ae6ef91baac80a3207e77f9d3958929ec14af22d7f2f10057a5310148d55003e",
+  "size_bytes": 23711248,
+  "rules_tests": 14,
+  "android_integration_tests": 1,
+  "remote_project_deployed": false
+}

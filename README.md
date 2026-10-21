@@ -1,10 +1,49 @@
 # 저녁득템
 
-주변 매장의 마감 음식을 예약하고 직접 수령하는 **Android 네이티브 포트폴리오 MVP**입니다. 첨부 기획서·화면정의서의 고객/매장 흐름을 Kotlin + Jetpack Compose와 Python/SQLite API로 구현했습니다. 모든 매장과 상품은 가상이며, 결제는 테스트 시뮬레이션입니다.
+주변 매장의 마감 음식을 예약하고 직접 수령하는 Kotlin·Jetpack Compose Android MVP입니다. **기본 백엔드는 Firebase Spark 기준의 Authentication + Cloud Firestore**이며, 별도 Python 서버나 Cloud Functions 없이 동작하도록 전환했습니다. 거래는 실제 과금 없는 테스트 예약입니다.
+
+## Firebase 프로젝트 연결
+
+1. Firebase에서 Spark 프로젝트를 만들고 Android 패키지 **`kr.evening.deals`**를 등록합니다.
+2. 받은 `google-services.json`을 **`app/google-services.json`**에 둡니다. Git에서는 제외됩니다.
+3. 이메일/비밀번호 로그인을 활성화하고 Firestore `(default)` 데이터베이스를 프로덕션 모드로 생성합니다.
+4. `firebase/firestore.rules`와 `firebase/firestore.indexes.json`을 실제 프로젝트에 배포합니다.
+5. Android Studio에서 프로젝트를 열어 Sync 및 실행합니다. JDK 17 이상, Android SDK 35, Android 8.0(API 26) 이상을 지원합니다.
+
+```bash
+npm ci
+npx firebase login
+npx firebase deploy --only firestore:rules,firestore:indexes --project YOUR_PROJECT_ID
+./gradlew assembleDebug
+```
+
+실제 Firebase 설정 파일이 있으면 debug도 실제 프로젝트를 사용합니다. 없으면 로컬 에뮬레이터를 기본으로 사용합니다. 이 코드가 프로젝트 생성·배포·Blaze 업그레이드를 자동 수행하지는 않습니다.
+
+**[프로젝트 설정·운영자 권한·Spark 제약·보안 구조 안내](docs/FIREBASE_SPARK.md)**
+
+## 로컬 개발
+
+```bash
+npm ci
+# 이 클라우드에서만 필요한 JDK/SDK·캐시 경로
+source scripts/env.sh
+source firebase/dev-env.sh
+npm run firebase:start       # Auth 9099 + Firestore 8085
+```
+
+별도 터미널에서:
+
+```bash
+source firebase/dev-env.sh
+npm run firebase:seed
+./gradlew assembleDebug -PfirebaseEmulators=true
+```
+
+Android 에뮬레이터는 `10.0.2.2:9099/8085`에 연결합니다. 로컬 전용 계정은 고객 `customer@demo.kr`, 운영자 `store@demo.kr`, 비밀번호 `Demo1234!`입니다. **이 계정과 샘플 데이터는 실제 프로젝트에 자동 생성되지 않습니다.** 운영자 권한은 콘솔에서 `merchants/{Auth UID}`의 `store_id`로 지정합니다.
 
 ## 실제 실행 화면
 
-Android 9(API 28) 에뮬레이터에서 기존 APK를 실행해 캡처한 화면입니다. 해상도는 720 × 1520px이며, 가상 매장과 샘플 상품을 표시합니다.
+아래는 기존 데모 APK의 Android 9(API 28) 실행 캡처입니다. 화면 구성은 유지하며, Firebase 거래 검증은 별도의 테스트 기록으로 구분합니다.
 
 | 홈 | 상품 목록 |
 |---|---|
@@ -12,99 +51,44 @@ Android 9(API 28) 에뮬레이터에서 기존 APK를 실행해 캡처한 화면
 
 | 상품 상세 | 수량 선택 |
 |---|---|
-| ![오늘의 빵 세트 상세](docs/screenshots/detail.png) | ![예약 수량과 합계 미리보기](docs/screenshots/quantity.png) |
+| ![상품 상세](docs/screenshots/detail.png) | ![수량 미리보기](docs/screenshots/quantity.png) |
 
-상품 목록은 발견 탭을 스크롤한 상태입니다. 앱 설치·실행, 서버 상품 조회, 발견 → 상세 → 수량 선택 이동을 확인했습니다. 로그인·예약 확정·매장 수령 전체 UI 흐름은 이번 캡처에서 검증하지 않았습니다.
+## 구현 흐름
 
-## 실행
+비회원 탐색 → 이메일 가입/로그인 → 수량 선점 → 테스트 예약 → 픽업 코드 → 매장 코드 검증 → 별도 수령 확정 → 후기 작성. 로그인 복귀 시 거래를 자동 실행하지 않습니다.
 
-Android Studio에서 이 폴더를 열고 Gradle Sync 후 `app`을 실행하세요. JDK 17 이상, Android SDK 35가 필요하며 Android 8.0(API 26) 이상을 지원합니다.
+- Firestore 원자적 트랜잭션과 보안 규칙으로 재고·가격 스냅샷·소유권을 검사합니다.
+- 재고 슬롯 선점, 최대 5분 만료, 동일 요청 확정 중복 방지, 정책 내 취소, 매장 수령 1회 처리를 제공합니다.
+- 찜·회원/비회원 마이·상태별 내역·거래당 후기·알림 그룹 설정을 저장합니다.
+- 고객에게 수령 완료 버튼을 제공하지 않으며 운영자 권한을 가입 화면에서 선택할 수 없습니다.
+- 음식 사진은 APK에 포함하며 출처는 [ASSETS.md](docs/ASSETS.md)에 기록했습니다.
 
-```bash
-# 별도 터미널: Python 3.11 이상, pip 패키지 불필요
-python3 server/server.py
+Spark 버전은 **상품당 재고 99개, 목록 20개/주문 30개**, 등록 후 총수량 고정 및 선점 이력 상품의 구성·시간·가격 잠금을 적용합니다. 미수령은 조회 시 지연 처리합니다. 앱 알림함은 거래의 현재 상태를 표시하며 예약 푸시·독립 알림 이벤트/읽음 동기화는 제공하지 않습니다.
 
-# Android 에뮬레이터 기본 주소: http://10.0.2.2:8080
-./gradlew assembleDebug
-# USB 실기기: adb reverse 후 빌드
-adb reverse tcp:8080 tcp:8080
-./gradlew assembleDebug -PapiUrl=http://127.0.0.1:8080
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
+실결제·Cloud Storage 업로드·FCM 발송·예약 작업·소셜 로그인·카메라 QR 스캔은 연결하지 않았습니다. 이메일 비밀번호 재설정은 Firebase Auth와 Firebase 호스팅 링크를 사용합니다.
 
-같은 LAN의 실제 기기에서는 `HOST=0.0.0.0 python3 server/server.py`로 실행하고 `-PapiUrl=http://서버의LAN주소:8080`으로 빌드합니다. 기본 서버 바인딩은 loopback입니다. HTTP는 debug 빌드에서만 허용되며 외부 배포 시 HTTPS API와 배포용 서명이 필요합니다. 데모 API를 인터넷에 그대로 노출하지 마세요.
-
-클라우드 환경은 `bash scripts/cloud-setup.sh`, 이후 터미널마다 `source scripts/env.sh`를 사용합니다. 환경별 SDK·JDK·캐시·신뢰 저장소는 `/workspace` 아래에 두며 시스템 파일을 수정하지 않습니다. Gradle Wrapper와 공식 배포 체크섬으로 도구를 검증합니다.
-
-## 데모 계정
-
-|역할|이메일|비밀번호|
-|---|---|---|
-|고객|customer@demo.kr|Demo1234!|
-|온기 베이커리 운영자|store@demo.kr|Demo1234!|
-
-앱은 비회원 발견 화면에서 시작합니다. 보호 동작을 누를 때만 로그인 안내가 열리며, 로그인 후 선택 화면으로 돌아옵니다. **자동 예약·자동 찜은 하지 않습니다.** 회원가입은 고객만 생성하며 운영자 역할은 서버 seed로만 부여합니다.
-
-## 구현 범위
-
-- **DG-01~03** 발견, 검색, 카테고리·지역·할인가 필터, 마감 임박순, 상세, 지도 앱 열기, 품절·빈 결과·통신 오류
-- **DG-04~06** 1~5개 수량 선택, 5분 재고 선점과 만료 타이머, 정책 동의, 테스트 결제 성공/실패/응답 지연, 실제 토큰을 담은 QR과 8자리 코드, 정책 내 취소
-- **DG-07~08·11~12·20** 상태별 픽업내역, 매장 단위 찜, 회원/비회원 마이, 완료 거래 1회 후기(별점 1~5, 10~500자)
-- **DG-09~10·14~15** 소유 매장 상품 등록·수정·판매 중지, 코드 조회와 별도 수령 확정, 버전 검사. 고객에게 수령 완료 버튼 없음
-- **DG-13·16·18** 이메일 로그인, 회원가입, 필수 동의, 로그인 안내, 로그아웃, 만료 세션 처리
-- **DG-22~23** 알림 그룹 설정, 거래 이벤트 기반 앱 알림함, 읽음, 계정별 접근. 거래와 알림함은 같은 DB 트랜잭션으로 저장
-
-### 외부 설정·후속 구현이 필요한 항목
-
-Google/Credential Manager, 카카오 SDK, Apple 인증 콜백과 DG-21 소셜 가입 완료는 미연동입니다. 버튼은 준비 중임을 안내하며 인증 성공을 흉내내지 않습니다. OAuth 앱 등록, 키, HTTPS 인증 서버가 필요합니다.
-
-DG-17 메일 발송·DG-19 재설정 토큰 교환은 미구현이며 요청 시 미설정 안내를 반환합니다. FCM 기기 등록·OS 푸시·시각별 예약 발송/outbox 재시도 역시 후속 작업입니다. 현재 알림 설정은 저장되지만 앱 알림함만 생성되며 기기 푸시는 발송되지 않습니다. 따라서 알림 권한을 강제 요청하지 않습니다.
-
-사진 업로드 대신 기본 사진을 사용하고 QR **표시**는 구현했으며 직원 입력은 **숫자 코드**를 지원합니다. 카메라 스캔·정밀 위치·반경/거리 정렬은 후속 구현입니다. 샘플 지역은 성수동이며 다른 지역은 정상 빈 결과를 표시합니다. 샘플 사진 3장은 APK에 포함되어 오프라인에서도 표시됩니다. Unsplash의 설명용 예시이며 실제 매장과 무관합니다. 출처는 `docs/ASSETS.md`에 기록했습니다. 다른 원격 이미지가 실패하면 같은 비율의 대체 화면을 표시합니다.
-
-이 저장소는 데모용입니다. 운영 배포를 위한 인증 시도 제한·메일 검증·감사/보안 운영·실제 결제/정산·수평 확장·소셜/푸시 검수는 포함하지 않습니다.
-
-## 서버와 시간 정책
-
-서버가 UTC epoch 초로 저장하고 앱이 한국 시각으로 표시합니다. 앱은 `/health`의 서버 시각으로 오프셋을 보정해 선점 카운트다운을 표시하며, 최종 거래 판단은 서버만 합니다.
-
-- `BEGIN IMMEDIATE`로 선점·주문·취소·수령 쓰기를 직렬화합니다. 판매 가능 = 총수량 − 확정 수량 − 유효 선점 수량
-- 선점 만료는 5분 또는 픽업 종료 중 빠른 시점입니다. 만료된 선점은 수량 계산에서 제외됩니다.
-- 요청 키는 사용자+작업별 고유하며 동일 본문 재시도는 기존 응답, 다른 본문은 `REQUEST_KEY_REUSED`로 거절합니다.
-- 성공 결제 후 주문·선점·알림을 함께 커밋합니다. 실패 결제는 선점을 해제합니다. 응답 지연 시 이미 커밋된 주문을 같은 키로 재조회합니다.
-- 픽업 시작 이상/종료 미만에만 매장 소유자가 수령을 확정할 수 있습니다. 검증은 읽기 전용이고 수령 상태 변경은 별도 호출입니다.
-- 취소는 시작 30분 전 **미만**까지 가능합니다. 종료 이후 미수령 전환은 API 요청 시 지연 정리하며 자동 재판매하지 않습니다.
-- 비밀번호는 PBKDF2-SHA256(200,000회)+사용자별 salt로 저장합니다. 세션은 7일 만료이며 로그아웃 시 폐기합니다. 토큰·비밀번호·픽업 코드를 요청 로그에 출력하지 않습니다.
-
-## 시연 순서
-
-1. 비회원 발견 → 상품 상세 → 수량 선택 → 로그인 → 수량 선점 → 정책 동의 → 테스트 예약 확정 → 픽업 코드.
-2. 내역에서 대기/완료/취소/미수령을 확인합니다. 취소 마감 전에는 취소 후 재고 반환을 확인할 수 있습니다.
-3. 매장 계정으로 로그인 → 매장 관리 → 코드 확인 → 숫자 코드 입력 → 상품/수량 확인 → 수령 확정.
-4. 고객으로 다시 로그인 → 완료 내역 → 후기 작성.
-
-샘플 데이터는 한국 시각 오늘 19시(이미 지났다면 다음날)로 생성됩니다. 서버 시작 시 기존 상품이 모두 마감됐다면 새 날짜의 샘플 3개를 추가하며, 과거 예약과 상품은 유지합니다. **픽업 시간 전에는 매장 확인이 거절되는 것이 정상입니다.** 기다리지 않고 시연하려면 매장 계정에서 현재 시각을 포함하는 새 상품을 먼저 등록한 뒤 해당 상품으로 예약하세요. 날짜/시간 입력은 한국 시각입니다.
-
-## 데이터와 검증
-
-기본 DB는 `server/deals.db`(Git 제외)입니다. 서버 재시작 뒤에도 계정·예약·찜·후기·알림을 유지합니다. 독립 데이터는 `DEALS_DB=/tmp/별도.db python3 server/server.py`로 지정합니다. 초기화는 **서버 종료 → 기존 DB 백업 → 해당 DB 파일 삭제 → 서버 재실행** 순서입니다.
+## 검증
 
 ```bash
-(cd server && python3 -m unittest -v)
+source firebase/dev-env.sh
+npm run test:firebase
 ./gradlew assembleDebug lintDebug
+# Auth/Firestore 에뮬레이터와 seed 준비 후, Android 기기를 연결한 상태
+./gradlew connectedDebugAndroidTest
 ```
 
-`server/test_server.py`는 마지막 재고 동시 선점, 요청 재시도와 본문 충돌, 만료·결제 실패 복원, 소유권·비회원 차단, 수령 1회와 후기 중복, 취소 기한·미수령, 코드 실패 제한, 역할 상승 차단, 재시작 영속성·상품 변경 제한을 검증합니다. `docs/VALIDATION.md`에 이번 실행 결과와 미검증 항목을 기록합니다.
+검증 범위와 결과는 [VALIDATION.md](docs/VALIDATION.md)를 확인하세요. 로컬 에뮬레이터 통과와 실제 Spark 프로젝트 연결·배포는 별도입니다.
 
 ## 구조
 
 ```mermaid
 flowchart LR
-    A[Jetpack Compose 화면] --> B[DealsViewModel 상태/요청]
-    B --> C[HTTP JSON API]
-    C --> D[인증·소유권·거래 정책]
-    D --> E[(SQLite 트랜잭션)]
-    E --> F[계정별 앱 알림함]
+    A[Compose 화면] --> B[DealsViewModel]
+    B --> C[FirebaseSparkBackend]
+    C --> D[Firebase Authentication]
+    C --> E[Firestore 트랜잭션]
+    E --> F[보안 규칙: 서버 시각·소유권·재고 검사]
+    F --> G[(Cloud Firestore)]
 ```
 
-앱의 거래 원본은 서버입니다. Compose에 표시되는 재고와 가격은 조회 스냅샷이며 서버가 쓰기 시 다시 검사합니다. APK에 서버 키나 비밀번호를 넣지 않습니다. 샘플 계정 정보는 데모 안내에만 사용됩니다.
+기존 Python/SQLite API는 회귀 검증과 비교용으로 `server/`에 보존했습니다. `python3 server/server.py`와 `./gradlew assembleDebug -Pbackend=legacy`를 함께 사용하면 이전 경로를 실행할 수 있습니다. Firebase가 기본이며 실제 Firebase 사용에는 Python 서버가 필요 없습니다.

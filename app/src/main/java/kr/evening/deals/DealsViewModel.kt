@@ -20,7 +20,11 @@ fun requestKey() = UUID.randomUUID().toString()
 
 class DealsViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("session", 0)
-    private var token = prefs.getString("token", "") ?: ""
+    private val firebase =
+        if (BuildConfig.BACKEND == "firebase") FirebaseSparkBackend(app) else null
+    private var token =
+        firebase?.let { if (it.hasSession) "firebase-sdk-session" else "" }
+            ?: (prefs.getString("token", "") ?: "")
     var user by mutableStateOf<JSONObject?>(null)
         private set
 
@@ -32,6 +36,7 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
 
     var favoriteStores by mutableStateOf<List<JSONObject>>(emptyList())
         private set
+
     var favorites by mutableStateOf<Set<String>>(emptySet())
         private set
 
@@ -77,6 +82,36 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
         body: JSONObject? = null,
     ): JSONObject =
         withContext(Dispatchers.IO) {
+            firebase?.let { backend ->
+                try {
+                    return@withContext backend.request(path, method, body)
+                } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                    throw IllegalStateException(
+                        when (e.code) {
+                            com.google.firebase.firestore.FirebaseFirestoreException.Code
+                                .PERMISSION_DENIED ->
+                                "권한·재고·시간 조건을 확인해 주세요. 최신 정보로 새로고침 후 다시 시도해 주세요."
+                            com.google.firebase.firestore.FirebaseFirestoreException.Code
+                                .RESOURCE_EXHAUSTED -> "Firebase 무료 사용량을 초과했어요. 잠시 후 다시 이용해 주세요."
+                            com.google.firebase.firestore.FirebaseFirestoreException.Code
+                                .UNAVAILABLE -> "Firebase에 연결할 수 없어요. 연결 상태를 확인해 주세요."
+                            com.google.firebase.firestore.FirebaseFirestoreException.Code
+                                .FAILED_PRECONDITION -> "Firebase 보안 규칙과 인덱스 배포 상태를 확인해 주세요."
+                            else -> "Firebase 요청을 완료하지 못했어요. 다시 확인해 주세요."
+                        }
+                    )
+                } catch (e: com.google.firebase.auth.FirebaseAuthException) {
+                    throw IllegalStateException(
+                        when (e.errorCode) {
+                            "ERROR_EMAIL_ALREADY_IN_USE" -> "이미 가입된 이메일이에요."
+                            "ERROR_INVALID_EMAIL" -> "이메일 형식을 확인해 주세요."
+                            "ERROR_WEAK_PASSWORD" -> "더 안전한 비밀번호를 입력해 주세요."
+                            "ERROR_TOO_MANY_REQUESTS" -> "요청이 많아요. 잠시 후 다시 시도해 주세요."
+                            else -> "이메일·비밀번호와 Firebase 로그인 설정을 확인해 주세요."
+                        }
+                    )
+                }
+            }
             val c = URL(BuildConfig.API_URL + path).openConnection() as HttpURLConnection
             try {
                 c.connectTimeout = 10000
@@ -203,7 +238,8 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun reset(email: String) = run {
-        api("/auth/password-reset-requests", "POST", obj("email" to email))
+        val result = api("/auth/password-reset-requests", "POST", obj("email" to email))
+        error = result.optString("message", "가입된 이메일이라면 재설정 링크가 발송됩니다.")
     }
 
     fun favorite(d: JSONObject) = run {

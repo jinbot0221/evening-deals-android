@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    function me() { return request.auth.uid; }
+    function staff(store) { return signed() && exists(/databases/$(database)/documents/merchants/$(me())) && get(/databases/$(database)/documents/merchants/$(me())).data.store_id == store; }
+    function deal(id) { return get(/databases/$(database)/documents/deals/$(id)).data; }
+    function afterHold(id) { return getAfter(/databases/$(database)/documents/holds/$(id)).data; }
+    function afterOrder(id) { return getAfter(/databases/$(database)/documents/orders/$(id)).data; }
+    function same(a,b,keys) { return a.diff(b).affectedKeys().hasOnly(keys); }
+    function shapeHold(h) {
+      return h.keys().hasOnly(['user_id','deal_id','quantity','slots','expires','status','requestKey','createdAt'])
+        && h.user_id == me() && h.quantity is int && h.quantity >= 1 && h.quantity <= 5
+        && h.slots is list && h.slots.size() == h.quantity && h.slots.toSet().size() == h.quantity
+        && h.requestKey is string && h.requestKey.size() >= 1 && h.requestKey.size() <= 80;
+    }
+    function slotMatches(h,id,i,state) {
+      return i >= h.quantity || (
+        getAfter(/databases/$(database)/documents/deals/$(h.deal_id)/slots/$(h.slots[i])).data.holdId == id
+        && getAfter(/databases/$(database)/documents/deals/$(h.deal_id)/slots/$(h.slots[i])).data.status == state
+        && getAfter(/databases/$(database)/documents/deals/$(h.deal_id)/slots/$(h.slots[i])).data.expires == h.expires);
+    }
+    function slotsMatch(h,id,state) {
+      return slotMatches(h,id,0,state) && slotMatches(h,id,1,state) && slotMatches(h,id,2,state) && slotMatches(h,id,3,state) && slotMatches(h,id,4,state);
+    }
+    function releasedSlot(h,id,i) {
+      return i >= h.quantity || getAfter(/databases/$(database)/documents/deals/$(h.deal_id)/slots/$(h.slots[i])).data.holdId != id;
+    }
+    function released(h,id) { return releasedSlot(h,id,0) && releasedSlot(h,id,1) && releasedSlot(h,id,2) && releasedSlot(h,id,3) && releasedSlot(h,id,4); }
+    function validDeal(d) {
+      return d.keys().hasOnly(['store_id','store','title','category','region','address','original','price','stock','start','end','description','allergens','stopped','locked','lockHoldId'])
+        && d.title is string && d.title.size() >= 2 && d.title.size() <= 50
+        && d.description is string && d.description.size() >= 10 && d.description.size() <= 500
+        && d.allergens is string && d.allergens.size() >= 1 && d.allergens.size() <= 200
+        && d.store is string && d.store.size() <= 100 && d.region is string && d.region.size() <= 40
+        && d.address is string && d.address.size() <= 200 && d.category in ['베이커리','도시락','샐러드']
+        && d.original is int && d.price is int && d.original >= d.price && d.price >= 1 && d.original <= 100000000
+        && d.stock is int && d.stock >= 1 && d.stock <= 99
+        && d.start is timestamp && d.end is timestamp && d.start < d.end
+        && d.stopped is bool && d.locked is bool && d.lockHoldId is string;
+    }
+    match /merchants/{uid} {
+      allow get: if signed() && uid == me();
+      allow list, write: if false; // Assign only using Firebase Console / trusted Admin SDK.
+    }
+    match /users/{uid} {
+      allow get: if signed() && uid == me();
+      allow create: if signed() && uid == me()
+        && request.resource.data.keys().hasOnly(['nickname','email','terms','privacy'])
+        && request.resource.data.nickname is string && request.resource.data.nickname.size() >= 2 && request.resource.data.nickname.size() <= 20
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.terms == true && request.resource.data.privacy == true;
+      allow update, delete, list: if false;
+      match /favorites/{store} {
+        allow read, delete: if signed() && uid == me();
+        allow create, update: if signed() && uid == me() && request.resource.data.keys().hasOnly(['dealId'])
+          && deal(request.resource.data.dealId).store_id == store;
+      }
+      match /settings/{id} {
+        allow read: if signed() && uid == me();
+        allow create, update: if signed() && uid == me() && id == 'notifications'
+          && request.resource.data.keys().hasOnly(['pickup_updates','reminders','completion','merchant_ops'])
+          && request.resource.data.pickup_updates is bool && request.resource.data.reminders is bool
+          && request.resource.data.completion is bool && request.resource.data.merchant_ops is bool;
+      }
+    }
+    match /clocks/{uid} {
+      allow get: if signed() && uid == me();
+      allow create, update: if signed() && uid == me() && request.resource.data.keys().hasOnly(['time']) && request.resource.data.time == request.time;
+    }
+    match /deals/{id} {
+      allow get: if true;
+      allow list: if request.query.limit != null && request.query.limit <= 20;
+      allow create: if staff(request.resource.data.store_id) && validDeal(request.resource.data)
+        && request.resource.data.end > request.time && request.resource.data.locked == false && request.resource.data.lockHoldId == "";
+      allow update: if (
+          staff(resource.data.store_id) && validDeal(request.resource.data)
+          && request.resource.data.store_id == resource.data.store_id
+          && request.resource.data.stock == resource.data.stock
+          && request.resource.data.locked == resource.data.locked && request.resource.data.lockHoldId == resource.data.lockHoldId
+          && ((!resource.data.locked) || same(request.resource.data,resource.data,['stopped']))
+        ) || (signed() && !resource.data.locked && request.resource.data.locked
+          && same(request.resource.data,resource.data,['locked','lockHoldId'])
+          && afterHold(request.resource.data.lockHoldId).createdAt == request.time
+          && afterHold(request.resource.data.lockHoldId).user_id == me()
+          && afterHold(request.resource.data.lockHoldId).deal_id == id);
+      allow delete: if false;
+      match /slots/{sid} {
+        allow get: if true;
+        allow list: if request.query.limit != null && request.query.limit <= 99;
+        function valid(s) {
+          return s.keys().hasOnly(['index','holdId','status','expires']) && s.index is int && s.index >= 0
+            && s.index < deal(id).stock && sid == string(s.index) && s.expires is timestamp;
+        }
+        function acquire(s) {
+          let h = afterHold(s.holdId);
+          return signed() && valid(s) && s.status == 'held'
+            && h.user_id == me() && h.deal_id == id && h.status == 'active'
+            && h.createdAt == request.time && h.slots.hasAny([sid]) && s.expires == h.expires
+            && (resource == null || resource.data.status == 'free' || (resource.data.status == 'held' && resource.data.expires <= request.time));
+        }
+        allow create: if acquire(request.resource.data);
+        allow update: if acquire(request.resource.data) || (
+          signed() && valid(request.resource.data) && request.resource.data.index == resource.data.index && (
+            (resource.data.status == 'held' && request.resource.data.status == 'reserved'
+              && request.resource.data.holdId == resource.data.holdId && request.resource.data.expires == resource.data.expires
+              && afterHold(resource.data.holdId).user_id == me() && afterHold(resource.data.holdId).status == 'confirmed'
+              && afterOrder(resource.data.holdId).createdAt == request.time)
+            || (request.resource.data.status == 'free' && request.resource.data.holdId == ''
+              && request.resource.data.expires == timestamp.value(0)
+              && ((resource.data.status == 'held' && afterHold(resource.data.holdId).user_id == me() && afterHold(resource.data.holdId).status == 'released')
+                || (resource.data.status == 'reserved' && afterOrder(resource.data.holdId).user_id == me() && afterOrder(resource.data.holdId).status == 'cancelled')))
+          ));
+        allow delete: if false;
+      }
+    }
+    match /holds/{id} {
+      allow get: if signed() && (resource == null || resource.data.user_id == me());
+      allow create: if signed() && shapeHold(request.resource.data)
+        && id == request.resource.data.requestKey
+        && request.resource.data.status == 'active' && request.resource.data.createdAt == request.time
+        && request.resource.data.expires > request.time && request.resource.data.expires <= request.time + duration.value(300,'s')
+        && request.resource.data.expires <= deal(request.resource.data.deal_id).end
+        && !deal(request.resource.data.deal_id).stopped && deal(request.resource.data.deal_id).end > request.time
+        && getAfter(/databases/$(database)/documents/deals/$(request.resource.data.deal_id)).data.locked
+        && slotsMatch(request.resource.data,id,'held');
+      allow update: if signed() && resource.data.user_id == me() && resource.data.status == 'active'
+        && same(request.resource.data,resource.data,['status'])
+        && ((request.resource.data.status == 'confirmed' && resource.data.expires > request.time
+            && afterOrder(id).createdAt == request.time && slotsMatch(resource.data,id,'reserved'))
+          || (request.resource.data.status == 'released' && released(resource.data,id)));
+    }
+    match /operations/{id} {
+      allow get: if signed() && (resource == null || resource.data.user_id == me());
+      allow create: if signed() && request.resource.data.keys().hasOnly(['user_id','orderId','requestKey','createdAt'])
+        && request.resource.data.user_id == me() && request.resource.data.createdAt == request.time
+        && id == me() + '_confirm_' + request.resource.data.requestKey
+        && afterOrder(request.resource.data.orderId).user_id == me()
+        && afterOrder(request.resource.data.orderId).confirmKey == request.resource.data.requestKey
+        && afterOrder(request.resource.data.orderId).createdAt == request.time;
+      allow update, delete, list: if false;
+    }
+    match /pickupCodes/{code} {
+      allow get: if signed() && (resource == null || resource.data.user_id == me() || staff(resource.data.store_id));
+      allow create: if signed() && code.matches('[0-9]{8}')
+        && request.resource.data.keys().hasOnly(['orderId','user_id','store_id'])
+        && request.resource.data.user_id == me()
+        && afterOrder(request.resource.data.orderId).user_id == me()
+        && afterOrder(request.resource.data.orderId).store_id == request.resource.data.store_id
+        && afterOrder(request.resource.data.orderId).code == code
+        && afterOrder(request.resource.data.orderId).createdAt == request.time;
+      allow update, delete, list: if false;
+    }
+    match /orders/{id} {
+      allow get: if signed() && (resource == null || resource.data.user_id == me() || staff(resource.data.store_id));
+      allow list: if signed() && request.query.limit != null && request.query.limit <= 30 && (resource.data.user_id == me() || staff(resource.data.store_id));
+      function validNew(o) {
+        let h = get(/databases/$(database)/documents/holds/$(id)).data;
+        let d = deal(h.deal_id);
+        return o.keys().hasOnly(['user_id','deal_id','store_id','holdId','qty','total','title','store','start','end','status','code','token','version','createdAt','confirmKey','paymentMode'])
+          && h.user_id == me() && h.status == 'active' && h.expires > request.time && d.end > request.time
+          && o.user_id == me() && o.deal_id == h.deal_id && o.store_id == d.store_id && o.holdId == id
+          && o.qty == h.quantity && o.total == d.price * h.quantity && o.title == d.title && o.store == d.store
+          && o.start == d.start && o.end == d.end && o.status == 'waiting_pickup' && o.version == 1
+          && o.createdAt == request.time && o.confirmKey is string && o.confirmKey.size() >= 1 && o.confirmKey.size() <= 80
+          && o.paymentMode in ['success','delay'] && o.token is string && o.token.matches('[a-f0-9]{64}')
+          && o.code.matches('[0-9]{8}') && getAfter(/databases/$(database)/documents/pickupCodes/$(o.code)).data.orderId == id
+          && getAfter(/databases/$(database)/documents/operations/$(me() + '_confirm_' + o.confirmKey)).data.orderId == id
+          && afterHold(id).status == 'confirmed' && slotsMatch(h,id,'reserved');
+      }
+      allow create: if signed() && validNew(request.resource.data);
+      allow update: if signed() && resource.data.status == 'waiting_pickup'
+        && same(request.resource.data,resource.data,['status','version']) && request.resource.data.version == resource.data.version + 1
+        && ((resource.data.user_id == me() && request.resource.data.status == 'cancelled'
+            && request.time < resource.data.start - duration.value(1800,'s')
+            && released(get(/databases/$(database)/documents/holds/$(id)).data,id))
+          || (staff(resource.data.store_id) && request.resource.data.status == 'picked_up'
+            && request.time >= resource.data.start && request.time < resource.data.end)
+          || ((resource.data.user_id == me() || staff(resource.data.store_id)) && request.resource.data.status == 'no_show' && request.time >= resource.data.end));
+      allow delete: if false;
+    }
+    match /reviews/{id} {
+      allow get: if signed() && (resource == null || resource.data.user_id == me());
+      allow create: if signed() && request.resource.data.keys().hasOnly(['user_id','rating','content','createdAt'])
+        && request.resource.data.user_id == me() && get(/databases/$(database)/documents/orders/$(id)).data.user_id == me()
+        && get(/databases/$(database)/documents/orders/$(id)).data.status == 'picked_up'
+        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.content is string && request.resource.data.content.size() >= 10 && request.resource.data.content.size() <= 500
+        && request.resource.data.createdAt == request.time;
+      allow update, delete, list: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
