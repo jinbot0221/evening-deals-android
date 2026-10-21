@@ -465,6 +465,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                                     contentPadding = PaddingValues(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
+                                    item { TestAccountNotice() }
                                     item {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             TextButton(
@@ -1432,6 +1433,25 @@ fun Qr(token: String) {
 }
 
 @Composable
+fun TestAccountNotice() {
+    Panel {
+        Text("테스트 계정 안내", fontWeight = FontWeight.Bold)
+        Text(
+            "고객  customer@demo.kr\n매장  store@demo.kr\n비밀번호  Demo1234!",
+            color = Muted,
+            fontSize = 13.sp,
+        )
+        Text(
+            if (BuildConfig.BACKEND == "legacy" || BuildConfig.FIREBASE_EMULATORS)
+                "매장 계정은 온기 베이커리만 관리해요."
+            else "실제 Firebase에서는 위 계정이 자동 생성되지 않아요. 회원가입 후 매장 계정의 운영자 권한을 별도로 설정해 주세요.",
+            fontSize = 12.sp,
+            color = Muted,
+        )
+    }
+}
+
+@Composable
 fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done: () -> Unit) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -1446,19 +1466,7 @@ fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done
             if (signup) "반가워요, 득템러!" else if (reset) "비밀번호를 잊으셨나요?" else "오늘의 득템을 시작해요",
             if (reset) "가입 이메일을 입력해 주세요." else "좋은 음식을 더 기분 좋은 가격으로.",
         )
-        if (
-            !signup && !reset && (BuildConfig.BACKEND == "legacy" || BuildConfig.FIREBASE_EMULATORS)
-        ) {
-            Panel {
-                Text("시연용 계정", fontWeight = FontWeight.Bold)
-                Text(
-                    "고객  customer@demo.kr\n매장  store@demo.kr\n비밀번호  Demo1234!",
-                    color = Muted,
-                    fontSize = 13.sp,
-                )
-                Text("매장 계정은 온기 베이커리만 관리해요.", fontSize = 12.sp, color = Muted)
-            }
-        }
+        if (!signup && !reset) TestAccountNotice()
         if (signup) Field(nick, "닉네임 (2~20자)", { nick = it.take(20) })
         Field(email, "이메일", { email = it })
         if (!reset) Field(password, "비밀번호 (8~64자)", { password = it.take(64) }, password = true)

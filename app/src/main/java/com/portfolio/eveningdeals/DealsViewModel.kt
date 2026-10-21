@@ -86,11 +86,14 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
                 try {
                     return@withContext backend.request(path, method, body)
                 } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                    android.util.Log.e("EveningDealsFirebase", "$method $path: ${e.code}", e)
                     throw IllegalStateException(
                         when (e.code) {
                             com.google.firebase.firestore.FirebaseFirestoreException.Code
                                 .PERMISSION_DENIED ->
-                                "권한·재고·시간 조건을 확인해 주세요. 최신 정보로 새로고침 후 다시 시도해 주세요."
+                                if (method == "GET")
+                                    "데이터 조회 권한이 없어요. Firebase 프로젝트의 Firestore 보안 규칙이 배포됐는지 확인해 주세요."
+                                else "요청 권한 또는 재고·픽업 시간 조건을 확인해 주세요. 새로고침 후 다시 시도해 주세요."
                             com.google.firebase.firestore.FirebaseFirestoreException.Code
                                 .RESOURCE_EXHAUSTED -> "Firebase 무료 사용량을 초과했어요. 잠시 후 다시 이용해 주세요."
                             com.google.firebase.firestore.FirebaseFirestoreException.Code
