@@ -1,4 +1,4 @@
-package kr.evening.deals
+package com.portfolio.eveningdeals
 
 import android.app.Application
 import androidx.compose.runtime.*

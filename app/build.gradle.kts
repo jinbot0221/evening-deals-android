@@ -16,9 +16,9 @@ val googleConfig = if (googleConfigFile.exists()) JsonSlurper().parse(googleConf
 val googleProject = googleConfig["project_info"] as? Map<*, *>
 val googleClient = (googleConfig["client"] as? List<*>)?.filterIsInstance<Map<*, *>>()?.firstOrNull {
  val info = it["client_info"] as? Map<*, *>
- (info?.get("android_client_info") as? Map<*, *>)?.get("package_name") == "kr.evening.deals"
+ (info?.get("android_client_info") as? Map<*, *>)?.get("package_name") == "com.portfolio.eveningdeals"
 }
-if (googleConfigFile.exists()) require(googleClient != null) { "google-services.json에 kr.evening.deals Android 앱이 없습니다." }
+if (googleConfigFile.exists()) require(googleClient != null) { "google-services.json에 com.portfolio.eveningdeals Android 앱이 없습니다." }
 val googleClientInfo = googleClient?.get("client_info") as? Map<*, *>
 val googleApiKey = ((googleClient?.get("api_key") as? List<*>)?.firstOrNull() as? Map<*, *>)?.get("current_key") as? String
 val configuredFirebase = googleConfigFile.exists() || firebaseConfig.containsKey("firebaseProjectId") || providers.gradleProperty("firebaseProjectId").isPresent
@@ -27,10 +27,10 @@ require(emulatorSetting in listOf("true", "false")) { "firebaseEmulators must be
 val useFirebaseEmulators = emulatorSetting == "true"
 fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 android {
- namespace = "kr.evening.deals"
+ namespace = "com.portfolio.eveningdeals"
  compileSdk = 35
  defaultConfig {
-  applicationId = "kr.evening.deals"
+  applicationId = "com.portfolio.eveningdeals"
   minSdk = 26
   targetSdk = 35
   versionCode = 1

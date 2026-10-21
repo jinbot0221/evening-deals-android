@@ -4,7 +4,7 @@
 
 ## Firebase 프로젝트 연결
 
-1. Firebase에서 Spark 프로젝트를 만들고 Android 패키지 **`kr.evening.deals`**를 등록합니다.
+1. Firebase에서 Spark 프로젝트를 만들고 Android 패키지 **`com.portfolio.eveningdeals`**를 등록합니다.
 2. 받은 `google-services.json`을 **`app/google-services.json`**에 둡니다. Git에서는 제외됩니다.
 3. 이메일/비밀번호 로그인을 활성화하고 Firestore `(default)` 데이터베이스를 프로덕션 모드로 생성합니다.
 4. `firebase/firestore.rules`와 `firebase/firestore.indexes.json`을 실제 프로젝트에 배포합니다.

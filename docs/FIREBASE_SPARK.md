@@ -5,7 +5,7 @@
 ## 실제 프로젝트 연결
 
 1. Firebase 프로젝트를 Spark 요금제로 생성합니다. 표시 이름은 `저녁득템`, 프로젝트 ID는 사용 가능한 고유 ID를 선택합니다. Analytics는 필수가 아닙니다.
-2. Android 앱을 패키지 **`kr.evening.deals`**로 등록합니다. 내려받은 **`google-services.json`을 `app/google-services.json`에 둡니다**. Git에서는 제외됩니다. 이 파일의 Android 앱 ID·프로젝트 ID·API 키를 Gradle이 읽어 FirebaseOptions에 전달합니다.
+2. Android 앱을 패키지 **`com.portfolio.eveningdeals`**로 등록합니다. 내려받은 **`google-services.json`을 `app/google-services.json`에 둡니다**. Git에서는 제외됩니다. 이미 이전 패키지로 Firebase Android 앱을 등록했다면 같은 프로젝트에 `com.portfolio.eveningdeals` 앱을 추가하고 새 설정 파일을 받으세요. 이 파일의 Android 앱 ID·프로젝트 ID·API 키를 Gradle이 읽어 FirebaseOptions에 전달합니다.
 3. Authentication → 로그인 방법에서 **이메일/비밀번호**를 활성화합니다. 이메일 열거 보호를 유지하고, 필요한 비밀번호 정책을 콘솔에서 설정합니다.
 4. Firestore Database를 **Standard / Native 모드, `(default)` 데이터베이스, 프로덕션 보안 모드**로 생성합니다. 한국 사용자라면 제공되는 서울 리전(`asia-northeast3`)을 검토합니다. 리전은 생성 후 쉽게 바꿀 수 없으므로 생성 화면에서 확인합니다.
 5. 로컬 PC에서 Firebase CLI 로그인 후 아래 규칙·인덱스를 배포합니다. 프로젝트 ID는 실제 값으로 바꾸세요. 이 저장소는 원격 프로젝트를 자동 생성하거나 요금제를 변경하지 않습니다.

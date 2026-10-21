@@ -2,6 +2,8 @@
 
 기존 데모는 2026-10-21, Firebase Spark 전환은 2026-10-22 한국 시각 기준 작업 기록입니다.
 
+패키지명을 `com.portfolio.eveningdeals`로 변경한 뒤 APK·Android 테스트 APK 빌드와 Lint, Android 9 Firebase 연동 시나리오 1개를 다시 통과했습니다.
+
 ## Firebase Spark 전환 검증 (2026-10-22)
 
 현재 기본 백엔드는 Firebase Auth + Firestore입니다. 아래 기존 Python 검증 기록과 구분합니다.

@@ -1,4 +1,4 @@
-package kr.evening.deals
+package com.portfolio.eveningdeals
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4

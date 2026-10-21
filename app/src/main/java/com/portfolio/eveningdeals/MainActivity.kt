@@ -1,4 +1,4 @@
-package kr.evening.deals
+package com.portfolio.eveningdeals
 
 import android.content.Intent
 import android.graphics.Bitmap

@@ -1,4 +1,4 @@
-package kr.evening.deals
+package com.portfolio.eveningdeals
 
 import android.content.Context
 import com.google.firebase.FirebaseApp
