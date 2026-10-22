@@ -530,7 +530,8 @@ class FirebaseSparkBackend(context: Context) {
             if (id == null) db.collection("deals").document()
             else db.collection("deals").document(id)
         val old = if (id == null) null else ref.get(Source.SERVER).await()
-        if (old != null) check(old.getString("store_id") == store)
+        if (old != null) check(old.getString("store_id") == store) { "내 매장의 상품만 수정할 수 있어요." }
+        validateDealInput(b, syncClock() / 1000.0, old?.getLong("stock")?.toInt())
         val data =
             mapOf(
                 "store_id" to store,

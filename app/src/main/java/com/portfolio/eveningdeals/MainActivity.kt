@@ -1610,8 +1610,23 @@ fun EditDeal(d: JSONObject?, vm: DealsViewModel, done: () -> Unit) {
     }
     Page {
         Heading(if (d == null) "오늘의 상품을 소개해요" else "상품 정보를 수정해요", "예약·선점이 있으면 가격·구성·시간은 변경할 수 없어요.")
-        Text("상품 사진은 기본 빵 사진을 사용해요. 사진 업로드는 후속 연동 항목입니다.", color = Muted, fontSize = 13.sp)
-        Field(title, "상품명", { title = it.take(50) })
+        Panel {
+            Box(
+                Modifier.fillMaxWidth().height(130.dp).background(Canvas, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Add, contentDescription = null, tint = Muted, modifier = Modifier.size(32.dp))
+                    Text("상품 사진", color = Muted)
+                }
+            }
+            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                Text("사진 추가 · 준비 중")
+            }
+            Text("서버 사정상 사진 업로드는 지원하지 않습니다.", color = Muted, fontSize = 13.sp)
+            Text("상품에는 기본 사진이 표시됩니다.", color = Muted, fontSize = 12.sp)
+        }
+        Field(title, "상품명 (2~50자)", { title = it.take(50) })
         Field(original, "원가 (원)", { original = it }, numeric = true)
         Field(price, "할인가 (원)", { price = it }, numeric = true)
         Field(stock, "총수량 (1~99, 등록 후 고정)", { stock = it }, numeric = true)
@@ -1619,7 +1634,8 @@ fun EditDeal(d: JSONObject?, vm: DealsViewModel, done: () -> Unit) {
         Field(start, "시작 (HH:mm)", { start = it })
         Field(end, "종료 (HH:mm)", { end = it })
         Field(desc, "구성 안내 (10~500자)", { desc = it.take(500) }, lines = 3)
-        Field(allergens, "알레르기 성분 (없으면 없음)", { allergens = it })
+        Text("구성 안내 ${desc.trim().length}/500자 · 최소 10자", color = Muted, fontSize = 12.sp)
+        Field(allergens, "알레르기 성분 (없으면 없음)", { allergens = it.take(200) })
         Primary("상품 저장", !vm.busy) {
             try {
                 val zone = ZoneId.of("Asia/Seoul")

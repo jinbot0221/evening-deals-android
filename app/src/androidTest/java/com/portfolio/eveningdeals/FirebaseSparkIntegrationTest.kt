@@ -11,6 +11,39 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class FirebaseSparkIntegrationTest {
     @Test
+    fun productInputExplainsInvalidFieldsBeforeFirestoreWrite() {
+        val now = System.currentTimeMillis() / 1000.0
+        val valid = obj(
+            "title" to "오늘의 빵 세트", "description" to "갓 구운 빵 세 가지 구성입니다.",
+            "allergens" to "밀, 우유", "original" to 10000, "price" to 5000,
+            "stock" to 3, "start" to now + 60, "end" to now + 3600,
+        )
+        validateDealInput(valid, now)
+        val invalid = listOf(
+            Triple("title", "빵", "상품명"),
+            Triple("description", "빵 세트", "구성 안내"),
+            Triple("allergens", "  ", "알레르기"),
+            Triple("price", 11000, "할인가"),
+            Triple("stock", 100, "총수량"),
+            Triple("end", now - 1, "종료 시간"),
+        )
+        for ((field, value, message) in invalid) {
+            try {
+                validateDealInput(org.json.JSONObject(valid.toString()).put(field, value), now)
+                fail("Invalid $field must be rejected")
+            } catch (e: IllegalArgumentException) {
+                assertTrue(e.message.orEmpty().contains(message))
+            }
+        }
+        try {
+            validateDealInput(valid, now, existingStock = 4)
+            fail("Existing stock must stay fixed")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message.orEmpty().contains("총수량"))
+        }
+    }
+
+    @Test
     fun sparkCustomerAndMerchantLifecycle() = runBlocking {
         check(BuildConfig.FIREBASE_EMULATORS) {
             "Integration test must never target a real Firebase project."

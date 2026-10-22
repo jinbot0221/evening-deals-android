@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "backend": "Firebase Auth + Firestore",
   "target": "local demo-evening-deals emulators; real project not configured",
-  "sha256": "46a87c2de3dd2852ac3a1ded9b0e7d5a854f5fb6b63ea5274c3cd7d1c2f90197",
-  "size_bytes": 23717072,
+  "sha256": "1d8b17725ad02888ad1f32995c75253b5bd0a16b3dbc218249bc83a3e88e7503",
+  "size_bytes": 23721630,
   "rules_tests": 14,
-  "android_integration_tests": 1,
+  "android_integration_tests": 2,
   "remote_project_deployed": false,
   "application_id": "com.portfolio.eveningdeals"
 }

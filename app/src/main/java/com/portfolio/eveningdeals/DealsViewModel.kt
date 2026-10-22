@@ -94,7 +94,9 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
                         when (e.code) {
                             com.google.firebase.firestore.FirebaseFirestoreException.Code
                                 .PERMISSION_DENIED ->
-                                if (method == "GET")
+                                if (method != "GET" && (path == "/merchant/deals" || path.startsWith("/merchant/deals/")))
+                                    "상품 저장 권한이 없어요. 매장 권한과 Firestore 보안 규칙 배포 상태를 확인해 주세요."
+                                else if (method == "GET")
                                     "데이터 조회 권한이 없어요. Firebase 프로젝트의 Firestore 보안 규칙이 배포됐는지 확인해 주세요."
                                 else "요청 권한 또는 재고·픽업 시간 조건을 확인해 주세요. 새로고침 후 다시 시도해 주세요."
                             com.google.firebase.firestore.FirebaseFirestoreException.Code
@@ -323,6 +325,7 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun saveDeal(id: String?, body: JSONObject, done: () -> Unit) = run {
+        validateDealInput(body, now(), merchantDeals.find { it.optString("id") == id }?.getInt("stock"))
         api(
             if (id == null) "/merchant/deals" else "/merchant/deals/$id",
             if (id == null) "POST" else "PATCH",
