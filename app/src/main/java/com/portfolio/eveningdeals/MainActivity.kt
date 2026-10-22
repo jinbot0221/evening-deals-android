@@ -326,6 +326,10 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
     var cancelDialog by remember { mutableStateOf(false) }
     var stopId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<JSONObject?>(null) }
+    LaunchedEffect(vm.user?.optString("id"), vm.merchant) {
+        tab = 0
+        route = "home"
+    }
     val listState = rememberLazyListState()
     val selected =
         vm.deals.find { it.optString("id") == selectedId }
@@ -411,11 +415,11 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                             Icons.Outlined.ReceiptLong,
                             Icons.Outlined.PersonOutline,
                         )
-                    listOf("발견", "찜", "픽업내역", "마이").forEachIndexed { i, t ->
+                    (if (vm.merchant) listOf("상품 관리", "들어온 예약", "마이") else listOf("발견", "찜", "픽업내역", "마이")).forEachIndexed { i, t ->
                         NavigationBarItem(
                             selected = tab == i,
                             onClick = { tab = i },
-                            icon = { Icon(icons[i], t) },
+                            icon = { Icon(if (vm.merchant) listOf(Icons.Outlined.Explore, Icons.Outlined.ReceiptLong, Icons.Outlined.PersonOutline)[i] else icons[i], t) },
                             label = { Text(t) },
                             colors =
                                 NavigationBarItemDefaults.colors(
@@ -444,7 +448,28 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                 }
             }
             Box(Modifier.weight(1f)) {
-                when (route) {
+                when (if (vm.merchant && route == "home") when(tab) { 0 -> "merchant"; 1 -> "merchant-orders"; else -> "merchant-profile" } else route) {
+                    "merchant-profile" -> Page {
+                        Heading("매장 계정", vm.user?.optString("email").orEmpty())
+                        Text("관리 매장: ${vm.user?.optString("store_id").orEmpty()}")
+                        Primary("알림 설정") { route = "settings" }
+                        TextButton({ vm.logout { tab = 0; route = "home" } }) { Text("로그아웃") }
+                    }
+                    "merchant-orders" -> Page {
+                        Heading("들어온 예약", "내 매장의 최근 예약 30건 · 새로고침으로 갱신")
+                        Primary("픽업 코드 확인") { route = "verify" }
+                        if (vm.merchantOrders.isEmpty()) Text("아직 들어온 예약이 없어요.", color = Muted)
+                        vm.merchantOrders.forEach { o ->
+                            Panel {
+                                Text(o.optString("title"), fontWeight = FontWeight.Bold)
+                                Tag(status(o.optString("status")))
+                                Text("수량 ${o.optInt("qty")}개 · ${o.optInt("total")}원")
+                                Text(window(o), color = Muted, fontSize = 13.sp)
+                                if (o.optString("status") == "waiting_pickup")
+                                    Text("고객 방문 시 픽업 코드를 확인해 주세요.", color = Muted)
+                            }
+                        }
+                    }
                     "home" ->
                         when (tab) {
                             0 -> {
@@ -1077,7 +1102,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                     "merchant" ->
                         if (vm.merchant)
                             Page {
-                                Heading("오늘의 매장", "온기 베이커리 · 운영자 전용")
+                                Heading("매장 상품 관리", "관리 매장: ${vm.user?.optString("store_id").orEmpty()} · 운영자 전용")
                                 Primary("픽업 코드 확인") { route = "verify" }
                                 OutlinedButton(
                                     {

@@ -101,6 +101,9 @@ class FirebaseSparkIntegrationTest {
         assertEquals(8, pickup.getString("code").length)
         call("/auth/logout", obj())
         login("store@demo.kr")
+        val incoming = call("/merchant/orders").rows()
+        assertTrue(incoming.any { it.getString("id") == pickup.getString("id") })
+        assertTrue(incoming.all { it.getString("store_id") == "s1" })
         val verified =
             call("/merchant/pickups/verify", obj("numericCode" to pickup.getString("code")))
         assertEquals("waiting_pickup", verified.getString("status"))

@@ -43,6 +43,9 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
     var notifications by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
+    var merchantOrders by mutableStateOf<List<JSONObject>>(emptyList())
+        private set
+
     var merchantDeals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
@@ -156,6 +159,7 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
         favoriteStores = emptyList()
         notifications = emptyList()
         merchantDeals = emptyList()
+        merchantOrders = emptyList()
     }
 
     fun run(action: suspend () -> Unit) {
@@ -188,6 +192,7 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
             favorites = (0 until a.length()).map { a.getString(it) }.toSet()
             notifications = api("/notifications").rows()
             preferences = api("/me/notification-preferences")
+            merchantOrders = if (merchant) api("/merchant/orders").rows() else emptyList()
             merchantDeals = if (merchant) api("/merchant/deals").rows() else emptyList()
         }
     }

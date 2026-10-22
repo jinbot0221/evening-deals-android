@@ -6,7 +6,7 @@
   "failures": 0,
   "errors": 0,
   "skipped": 0,
-  "time_seconds": 22.339,
+  "time_seconds": 23.554,
   "test_cases": [
     "sparkCustomerAndMerchantLifecycle"
   ]

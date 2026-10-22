@@ -213,6 +213,8 @@ def handle(method,path,b,token=''):
             r=db.execute('SELECT body FROM preferences WHERE user_id=?',(u['id'],)).fetchone();return json.loads(r[0]) if r else {'pickup_updates':True,'reminders':True,'completion':True,'merchant_ops':True}
         if p.startswith('/merchant/'):
             require(u['role']=='merchant','매장 운영자만 접근할 수 있어요.',403)
+            if p=='/merchant/orders' and method=='GET':
+                return {'items':[order_json(db,r,u) for r in db.execute('SELECT o.* FROM orders o JOIN deals d ON d.id=o.deal_id WHERE d.store_id=? ORDER BY o.rowid DESC LIMIT 30',(u['store_id'],)).fetchall()]}
             if p=='/merchant/deals' and method=='GET':
                 return {'items':[deal_json(db,r) for r in db.execute('SELECT * FROM deals WHERE store_id=? ORDER BY end DESC',(u['store_id'],))]}
             if p=='/merchant/pickups/verify' or p=='/merchant/pickups/complete':

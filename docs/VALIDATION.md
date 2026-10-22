@@ -67,3 +67,5 @@ Android 9(API 28) x86 에뮬레이터에 동일한 APK를 설치해 성공 응�
 앞서 사용했던 Android 30 에뮬레이터는 시스템 프로세스의 `Lost network stack` 오류로 설치가 실패했습니다. 해당 환경 오류 기록은 `emulator-system-error.txt`에 보존했으며, 이후 Android 9 에뮬레이터로 전환해 위 범위를 확인했습니다.
 
 환경 설정 초안에는 전체 `install_script`와 `start_skill`, `images.unsplash.com` 허용 항목을 저장했습니다. 현재 인스턴스에서 설치/시작 스크립트를 확인했으며, 환경 게시 및 새 작업 복원은 실행하지 않았습니다.
+
+매장 전용 홈(상품 관리·들어온 예약·마이)을 추가했습니다. Android Firebase 연동 테스트에서 새 고객 예약이 매장 예약 목록에 포함되고 목록의 모든 항목이 해당 매장 소유인지 확인했습니다. APK 빌드·Lint·Android 연동 1개 및 기존 Python 12개 테스트를 통과했습니다.

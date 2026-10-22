@@ -709,6 +709,14 @@ class FirebaseSparkBackend(context: Context) {
                     .await()
                 return obj("ok" to true)
             }
+            "/merchant/orders" -> {
+                val store = ownStore()
+                val rows = db.collection("orders")
+                    .whereEqualTo("store_id", store)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .limit(30).get(Source.SERVER).await().documents
+                return obj("items" to JSONArray(rows.map { orderJson(it, false) }))
+            }
             "/merchant/deals" -> return if (method == "POST") saveDeal(null, b) else catalog(true)
             "/merchant/pickups/verify" -> return verify(b.getString("numericCode"))
             "/merchant/pickups/complete" -> return complete(b)
