@@ -11,6 +11,32 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class FirebaseSparkIntegrationTest {
     @Test
+    fun signupTypesKeepMerchantPending() = runBlocking {
+        check(BuildConfig.FIREBASE_EMULATORS)
+        val api = FirebaseSparkBackend(ApplicationProvider.getApplicationContext())
+        for (type in listOf("customer", "merchant")) {
+            val signup = api.request("/auth/signup", "POST", obj(
+                "nickname" to "가입 검증", "email" to "signup-${requestKey()}@demo.kr",
+                "password" to "Demo1234!", "terms" to true, "privacy" to true,
+                "account_type" to type, "store_name" to "신규 테스트 매장", "store_address" to "서울 성동구 성수동 1",
+            ))
+            val user = signup.getJSONObject("user")
+            assertEquals(type, user.getString("account_type"))
+            assertEquals("customer", user.getString("role"))
+            if (type == "merchant") {
+                assertEquals("신규 테스트 매장", user.getString("store_name"))
+                try {
+                    api.request("/merchant/deals")
+                    fail("Pending merchant must not access store management")
+                } catch (e: IllegalStateException) {
+                    assertTrue(e.message.orEmpty().contains("운영자"))
+                }
+            }
+            api.request("/auth/logout", "POST", obj())
+        }
+    }
+
+    @Test
     fun productInputExplainsInvalidFieldsBeforeFirestoreWrite() {
         val now = System.currentTimeMillis() / 1000.0
         val valid = obj(

@@ -319,7 +319,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
     var loginSheet by remember { mutableStateOf(false) }
     var category by rememberSaveable { mutableStateOf("전체") }
     var region by rememberSaveable { mutableStateOf("성수동") }
-    var maxPrice by rememberSaveable { mutableIntStateOf(20000) }
+    var maxPrice by rememberSaveable { mutableIntStateOf(100000000) }
     var search by rememberSaveable { mutableStateOf("") }
     var storeFilter by rememberSaveable { mutableStateOf("") }
     var historyFilter by rememberSaveable { mutableStateOf("waiting_pickup") }
@@ -445,6 +445,11 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                         )
                         IconButton({ vm.error = null }) { Icon(Icons.Outlined.Close, "안내 닫기") }
                     }
+                }
+            }
+            if (vm.signedIn && !vm.merchant && vm.user?.optString("account_type") == "merchant") {
+                Surface(color = Orange.copy(alpha = .1f)) {
+                    Text("업체 가입 승인 대기 중 · 승인 후 매장 관리 화면이 열립니다.", modifier = Modifier.fillMaxWidth().padding(12.dp), fontSize = 13.sp)
                 }
             }
             Box(Modifier.weight(1f)) {
@@ -618,7 +623,7 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                                                 "필터 초기화",
                                                 {
                                                     category = "전체"
-                                                    maxPrice = 20000
+                                                    maxPrice = 100000000
                                                     search = ""
                                                     storeFilter = ""
                                                     region = "성수동"
@@ -777,6 +782,13 @@ fun EveningApp(vm: DealsViewModel = viewModel()) {
                             else ->
                                 Page {
                                     Heading("마이", "반가워요, 오늘도 득템하세요")
+                                    if (vm.user?.optString("account_type") == "merchant" && !vm.merchant) {
+                                        Panel {
+                                            Text("업체 가입 승인 대기", fontWeight = FontWeight.Bold)
+                                            Text(vm.user?.optString("store_name").orEmpty())
+                                            Text("승인 후 상품 등록과 매장 예약 관리를 사용할 수 있어요.", color = Muted)
+                                        }
+                                    }
                                     Panel {
                                         Icon(
                                             Icons.Outlined.AccountCircle,
@@ -1368,19 +1380,21 @@ fun FilterPage(region: String, price: Int, category: String, apply: (String, Int
             }
         }
         Panel {
-            Text("최대 가격 ${won(p)}", fontWeight = FontWeight.Bold)
+            Text(if (p == 100000000) "가격 제한 없음" else "최대 가격 ${won(p)}", fontWeight = FontWeight.Bold)
+            Check("가격 제한 없음", p == 100000000, { p = if (it) 100000000 else 20000 })
             Slider(
-                p.toFloat(),
+                p.coerceAtMost(100000).toFloat(),
                 { p = (it / 1000).toInt() * 1000 },
-                valueRange = 1000f..20000f,
-                steps = 18,
+                valueRange = 1000f..100000f,
+                steps = 98,
+                enabled = p != 100000000,
             )
             Text("할인가 기준 · 픽업 마감 임박순 정렬", fontSize = 13.sp, color = Muted)
         }
         Primary("필터 적용", r.isNotBlank()) { apply(r.trim(), p, c) }
         TextButton({
             r = "성수동"
-            p = 20000
+            p = 100000000
             c = "전체"
         }) {
             Text("초기화")
@@ -1484,6 +1498,9 @@ fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done
     var nick by rememberSaveable { mutableStateOf("") }
     var terms by rememberSaveable { mutableStateOf(false) }
     var privacy by rememberSaveable { mutableStateOf(false) }
+    var accountType by rememberSaveable { mutableStateOf("customer") }
+    var storeName by rememberSaveable { mutableStateOf("") }
+    var storeAddress by rememberSaveable { mutableStateOf("") }
     val signup = route == "signup"
     val reset = route == "reset"
     Page {
@@ -1492,7 +1509,19 @@ fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done
             if (reset) "가입 이메일을 입력해 주세요." else "좋은 음식을 더 기분 좋은 가격으로.",
         )
         if (!signup && !reset) TestAccountNotice()
-        if (signup) Field(nick, "닉네임 (2~20자)", { nick = it.take(20) })
+        if (signup) {
+            Text("가입 유형", fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FilterChip(accountType == "customer", { accountType = "customer" }, label = { Text("일반 사용자") })
+                FilterChip(accountType == "merchant", { accountType = "merchant" }, label = { Text("업체") })
+            }
+            Field(nick, "닉네임 (2~20자)", { nick = it.take(20) })
+            if (accountType == "merchant") {
+                Field(storeName, "매장명 (2~100자)", { storeName = it.take(100) })
+                Field(storeAddress, "매장 주소 (2~200자)", { storeAddress = it.take(200) })
+                Text("업체 가입은 승인 후 상품 등록과 예약 관리가 가능해요.", color = Muted, fontSize = 13.sp)
+            }
+        }
         Field(email, "이메일", { email = it })
         if (!reset) Field(password, "비밀번호 (8~64자)", { password = it.take(64) }, password = true)
         if (signup) {
@@ -1515,11 +1544,12 @@ fun AuthPage(route: String, vm: DealsViewModel, navigate: (String) -> Unit, done
             !vm.busy &&
                 email.contains('@') &&
                 (reset || password.length >= 8) &&
-                (!signup || (nick.trim().length >= 2 && password == confirm && terms && privacy)),
+                (!signup || (nick.trim().length >= 2 && password == confirm && terms && privacy &&
+                    (accountType != "merchant" || (storeName.trim().length >= 2 && storeAddress.trim().length >= 2)))),
         ) {
             when {
                 signup ->
-                    vm.signup(nick.trim(), email, password, terms, privacy) {
+                    vm.signup(nick.trim(), email, password, terms, privacy, accountType, storeName.trim(), storeAddress.trim()) {
                         password = ""
                         confirm = ""
                         done()

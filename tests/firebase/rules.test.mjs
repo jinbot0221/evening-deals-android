@@ -135,3 +135,24 @@ test('review is one per own completed order; private profile and preferences sta
  await assertSucceeds(setDoc(ref(db,'users/'+uid),{nickname:'득템러',email:uid+'@example.com',terms:true,privacy:true}));
  await assertFails(getDoc(ref(ctx(other),'users/'+uid)));
 });
+
+test('merchant signup stores an application without granting store privileges',async()=>{
+ const db=ctx(uid);
+ const data={nickname:'업체 신청자',email:uid+'@example.com',terms:true,privacy:true,account_type:'merchant',store_name:'테스트 매장',store_address:'서울 성동구 성수동 1'};
+ await assertSucceeds(setDoc(ref(db,'users/'+uid),data));
+ assert.equal((await getDoc(ref(db,'users/'+uid))).data().account_type,'merchant');
+ await assertFails(setDoc(ref(db,'merchants/'+uid),{store_id:'s1'}));
+ await assertFails(setDoc(ref(db,'deals/unauthorized'),dealData()));
+ await assertFails(getDoc(ref(ctx(other),'users/'+uid)));
+});
+test('merchant application requires valid store details and cannot inject an approved role',async()=>{
+ const db=ctx(uid);const base={nickname:'업체 신청자',email:uid+'@example.com',terms:true,privacy:true,account_type:'merchant'};
+ await assertFails(setDoc(ref(db,'users/'+uid),base));
+ await assertFails(setDoc(ref(db,'users/'+uid),{...base,store_name:' ',store_address:'서울 성동구'}));
+ await assertFails(setDoc(ref(db,'users/'+uid),{...base,store_name:'테스트 매장',store_address:'서울 성동구',role:'merchant'}));
+});
+test('customer signup remains compatible and cannot change its immutable signup type',async()=>{
+ const db=ctx(uid);const base={nickname:'일반 사용자',email:uid+'@example.com',terms:true,privacy:true,account_type:'customer'};
+ await assertSucceeds(setDoc(ref(db,'users/'+uid),base));
+ await assertFails(updateDoc(ref(db,'users/'+uid),{account_type:'merchant',store_name:'테스트 매장',store_address:'서울 성동구'}));
+});

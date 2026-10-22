@@ -220,8 +220,12 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
         password: String,
         terms: Boolean,
         privacy: Boolean,
+        accountType: String,
+        storeName: String,
+        storeAddress: String,
         done: () -> Unit,
     ) = run {
+        check(accountType != "merchant" || BuildConfig.BACKEND != "legacy") { "업체 가입 신청은 Firebase 연결에서 지원해요." }
         val r =
             api(
                 "/auth/signup",
@@ -232,6 +236,9 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
                     "password" to password,
                     "terms" to terms,
                     "privacy" to privacy,
+                    "account_type" to accountType,
+                    "store_name" to storeName,
+                    "store_address" to storeAddress,
                 ),
             )
         token = r.getString("token")

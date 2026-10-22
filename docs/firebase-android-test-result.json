@@ -2,13 +2,14 @@
   "platform": "Android 9 / API 28 emulator",
   "backend": "local Firebase Auth + Firestore emulators with firestore.rules",
   "test_class": "com.portfolio.eveningdeals.FirebaseSparkIntegrationTest",
-  "tests": 2,
+  "tests": 3,
   "failures": 0,
   "errors": 0,
   "skipped": 0,
-  "time_seconds": 22.832,
+  "time_seconds": 25.114,
   "test_cases": [
     "sparkCustomerAndMerchantLifecycle",
+    "signupTypesKeepMerchantPending",
     "productInputExplainsInvalidFieldsBeforeFirestoreWrite"
   ]
 }

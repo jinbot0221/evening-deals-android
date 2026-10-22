@@ -22,6 +22,9 @@ import org.json.JSONObject
  * Spark: all privileged transitions are checked by firestore.rules; no Admin credentials in APK.
  */
 class FirebaseSparkBackend(context: Context) {
+    companion object {
+        private val configuredDatabases = mutableSetOf<FirebaseFirestore>()
+    }
     private val app =
         FirebaseApp.getApps(context).find { it.name == "evening-spark" }
             ?: FirebaseApp.initializeApp(
@@ -56,12 +59,17 @@ class FirebaseSparkBackend(context: Context) {
     }
 
     init {
-        // No offline transaction success: stock/order writes require a live server acknowledgement.
-        db.firestoreSettings =
-            FirebaseFirestoreSettings.Builder().setPersistenceEnabled(false).build()
-        if (BuildConfig.FIREBASE_EMULATORS) {
-            auth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099)
-            db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8085)
+        synchronized(configuredDatabases) {
+            if (db !in configuredDatabases) {
+                // Configure the shared SDK once, before its first request.
+                db.firestoreSettings =
+                    FirebaseFirestoreSettings.Builder().setPersistenceEnabled(false).build()
+                if (BuildConfig.FIREBASE_EMULATORS) {
+                    auth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099)
+                    db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8085)
+                }
+                configuredDatabases.add(db)
+            }
         }
     }
 
@@ -104,6 +112,9 @@ class FirebaseSparkBackend(context: Context) {
             "id" to uid,
             "email" to who.email.orEmpty(),
             "nickname" to user.getString("nickname"),
+            "account_type" to (user.getString("account_type") ?: "customer"),
+            "store_name" to user.getString("store_name"),
+            "store_address" to user.getString("store_address"),
             "role" to if (membership.exists()) "merchant" else "customer",
             "store_id" to membership.getString("store_id"),
         )
@@ -535,11 +546,11 @@ class FirebaseSparkBackend(context: Context) {
         val data =
             mapOf(
                 "store_id" to store,
-                "store" to (old?.getString("store") ?: profile().getString("nickname")),
+                "store" to (old?.getString("store") ?: profile().let { it.optString("store_name").takeIf { name -> name.isNotBlank() && name != "null" } ?: it.getString("nickname") }),
                 "title" to b.getString("title").trim(),
                 "category" to (old?.getString("category") ?: "베이커리"),
                 "region" to (old?.getString("region") ?: "성수동"),
-                "address" to (old?.getString("address") ?: "매장 주소를 운영자에게 확인해 주세요"),
+                "address" to (old?.getString("address") ?: profile().optString("store_address").takeIf { it.isNotBlank() && it != "null" } ?: "매장 주소를 운영자에게 확인해 주세요"),
                 "original" to b.getInt("original"),
                 "price" to b.getInt("price"),
                 "stock" to b.getInt("stock"),
@@ -598,6 +609,14 @@ class FirebaseSparkBackend(context: Context) {
                 ) {
                     "닉네임과 필수 약관을 확인해 주세요."
                 }
+                val accountType = b.optString("account_type", "customer")
+                check(accountType in listOf("customer", "merchant")) { "가입 유형을 확인해 주세요." }
+                val storeName = b.optString("store_name").trim()
+                val storeAddress = b.optString("store_address").trim()
+                if (accountType == "merchant") {
+                    check(storeName.length in 2..100) { "매장명은 2~100자로 입력해 주세요." }
+                    check(storeAddress.length in 2..200) { "매장 주소는 2~200자로 입력해 주세요." }
+                }
                 check(b.getString("password").length in 8..64) { "비밀번호는 8~64자로 입력해 주세요." }
                 try {
                     auth
@@ -622,12 +641,18 @@ class FirebaseSparkBackend(context: Context) {
                 db.collection("users")
                     .document(uid)
                     .set(
-                        mapOf(
+                        mutableMapOf<String, Any>(
                             "nickname" to nickname,
-                            "email" to auth.currentUser!!.email,
+                            "email" to auth.currentUser!!.email!!,
                             "terms" to true,
                             "privacy" to true,
-                        )
+                            "account_type" to accountType,
+                        ).apply {
+                            if (accountType == "merchant") {
+                                put("store_name", storeName)
+                                put("store_address", storeAddress)
+                            }
+                        }
                     )
                     .await()
                 return obj("token" to "firebase-sdk-session", "user" to profile())

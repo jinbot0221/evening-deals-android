@@ -92,3 +92,5 @@ flowchart LR
 ```
 
 기존 Python/SQLite API는 회귀 검증과 비교용으로 `server/`에 보존했습니다. `python3 server/server.py`와 `./gradlew assembleDebug -Pbackend=legacy`를 함께 사용하면 이전 경로를 실행할 수 있습니다. Firebase가 기본이며 실제 Firebase 사용에는 Python 서버가 필요 없습니다.
+
+회원가입에서 일반 사용자·업체를 선택할 수 있습니다. 업체는 매장명·주소를 제출하고 관리자 승인 후 매장 관리에 접근합니다. 신규 가입 전 최신 Firestore 규칙 배포가 필요합니다. 고객 목록의 기본 가격 필터는 제한 없음입니다.

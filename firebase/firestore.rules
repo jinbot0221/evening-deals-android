@@ -46,10 +46,15 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if signed() && uid == me();
       allow create: if signed() && uid == me()
-        && request.resource.data.keys().hasOnly(['nickname','email','terms','privacy'])
+        && request.resource.data.keys().hasOnly(['nickname','email','terms','privacy','account_type','store_name','store_address'])
         && request.resource.data.nickname is string && request.resource.data.nickname.size() >= 2 && request.resource.data.nickname.size() <= 20
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.terms == true && request.resource.data.privacy == true;
+        && request.resource.data.terms == true && request.resource.data.privacy == true
+        && (!('account_type' in request.resource.data) || (
+          request.resource.data.account_type in ['customer','merchant']
+          && (request.resource.data.account_type != 'merchant' || (
+            request.resource.data.store_name is string && request.resource.data.store_name.size() >= 2 && request.resource.data.store_name.size() <= 100
+            && request.resource.data.store_address is string && request.resource.data.store_address.size() >= 2 && request.resource.data.store_address.size() <= 200))));
       allow update, delete, list: if false;
       match /favorites/{store} {
         allow read, delete: if signed() && uid == me();
